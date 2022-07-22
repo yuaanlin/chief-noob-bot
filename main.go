@@ -9,18 +9,74 @@ import (
 )
 
 func main() {
-	// Create a new session using the DISCORD_TOKEN environment variable from Railway
+
+	setRoleChannelID := "999922492422504488"
+	setRoleMsgID := "999924590820196482"
+
+	roles := map[string]string{
+		"meow_b":         "999923150861115402",
+		"4459_ComfyBlob": "999923603938218025",
+	}
+
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
 		fmt.Printf("Error while starting bot: %s", err)
 		return
 	}
 
-	// Add the message handler
-	dg.AddHandler(messageCreate)
+	dg.Identify.Intents = discordgo.IntentsGuildMessageReactions
 
-	// Add the Guild Messages intent
-	dg.Identify.Intents = discordgo.IntentsGuildMessages
+	content := "大家好，我是 Chief Noob 機器小雞，請給這個訊息加入 Reaction 來自動設定你在這個 Server 的身分組：\n"
+	content += "\n點擊 <:meow_b:968378576162422784> 可以把自己設定為「前端工程師」"
+	content += "\n點擊 <:4459_ComfyBlob:968822210263404584> 可以把自己設定為「後端工程師」"
+	content += "\n\n未來會繼續追加更多身分組的選項，請大家踴躍提供 emoji 和身分組的創意哦！"
+
+	_, err = dg.ChannelMessageEdit(setRoleChannelID, setRoleMsgID, content)
+	if err != nil {
+		println(err.Error())
+		return
+	}
+
+	dg.AddHandler(
+		func(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
+			if r.UserID == s.State.User.ID {
+				return
+			}
+			if r.ChannelID == "999922492422504488" && r.MessageID == "999924590820196482" {
+				for emoji, role := range roles {
+					if r.Emoji.Name == emoji {
+						err := s.GuildMemberRoleAdd(r.GuildID, r.UserID, role)
+						if err != nil {
+							println(err.Error())
+							return
+						}
+					}
+				}
+			}
+		},
+	)
+
+	dg.AddHandler(
+		func(s *discordgo.Session, r *discordgo.MessageReactionRemove) {
+			if r.UserID == s.State.User.ID {
+				return
+			}
+
+			if r.ChannelID == "999922492422504488" && r.MessageID == "999924590820196482" {
+				for emoji, role := range roles {
+					if r.Emoji.Name == emoji {
+						err := s.GuildMemberRoleRemove(
+							r.GuildID, r.UserID, role,
+						)
+						if err != nil {
+							println(err.Error())
+							return
+						}
+					}
+				}
+			}
+		},
+	)
 
 	// Connect to the gateway
 	err = dg.Open()
@@ -37,21 +93,4 @@ func main() {
 
 	// Close the Discord session
 	dg.Close()
-}
-
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Don't proceed if the message author is a bot
-	if m.Author.Bot {
-		return
-	}
-
-	if m.Content == "ping" {
-		s.ChannelMessageSend(m.ChannelID, "Pong 🏓")
-		return
-	}
-
-	if m.Content == "hello" {
-		s.ChannelMessageSend(m.ChannelID, "Choo choo! 🚅")
-		return
-	}
 }
