@@ -2,13 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 func main() {
+
+	file, err := os.ReadFile("/etc/resolv.conf")
+	if err == nil {
+		println(string(file))
+	}
 
 	setRoleChannelID := "999922492422504488"
 	setRoleMsgID := "999924590820196482"
